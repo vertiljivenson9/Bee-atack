@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cazador de Abejas - Juego Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 4px solid #ffcc00;
+        }
+        
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .ui-box {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 2px solid #ffcc00;
+            font-weight: bold;
+            text-shadow: 0 0 5px #000;
+        }
+        
+        .health-bar {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .health-point {
+            width: 20px;
+            height: 20px;
+            background: #ff3333;
+            border-radius: 50%;
+            border: 1px solid #fff;
+        }
+        
+        .health-point.active {
+            background: #33ff33;
+        }
+        
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .player {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            z-index: 5;
+        }
+        
+        .player-body {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4a86e8;
+            border-radius: 50% 50% 40% 40%;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 2px solid #2d5ba3;
+        }
+        
+        .player-gun {
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            background: #666;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 5px;
+        }
+        
+        .bullet {
+            position: absolute;
+            width: 5px;
+            height: 15px;
+            background: #ffff00;
+            border-radius: 2px;
+            z-index: 4;
+        }
+        
+        .bee {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            z-index: 3;
+            transition: transform 0.1s;
+        }
+        
+        .bee-body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #ffcc00;
+            border-radius: 50% 50% 40% 40%;
+            border: 2px solid #cc9900;
+        }
+        
+        .bee-wing {
+            position: absolute;
+            width: 20px;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            top: 5px;
+        }
+        
+        .bee-wing.left {
+            left: -5px;
+            transform: rotate(-20deg);
+        }
+        
+        .bee-wing.right {
+            right: -5px;
+            transform: rotate(20deg);
+        }
+        
+        .bee-stinger {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #cc3300;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50% 50% 0 0;
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 20;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px #ff9900;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 80%;
+        }
+        
+        .btn {
+            background: linear-gradient(to bottom, #ffcc00, #ff9900);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(255, 204, 0, 0.5);
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 204, 0, 0.7);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .game-over {
+            color: #ff3333;
+        }
+        
+        .level-up {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: #ffcc00;
+            text-shadow: 0 0 10px #ff9900;
+            opacity: 0;
+            z-index: 15;
+            pointer-events: none;
+        }
+        
+        .hit-effect {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,255,0,0) 70%);
+            pointer-events: none;
+            z-index: 6;
+            opacity: 0;
+        }
+        
+        @keyframes levelUp {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        
+        @keyframes hitFlash {
+            0% { opacity: 0.8; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-ui">
+            <div class="ui-box">PUNTUACIÓN: <span id="score">0</span></div>
+            <div class="ui-box">NIVEL: <span id="level">1</span></div>
+            <div class="ui-box">
+                VIDAS: 
+                <div class="health-bar">
+                    <div class="health-point active" id="hp1"></div>
+                    <div class="health-point active" id="hp2"></div>
+                    <div class="health-point active" id="hp3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="player">
+                <div class="player-gun"></div>
+                <div class="player-body"></div>
+            </div>
+            <!-- Las abejas y balas se generan dinámicamente -->
+        </div>
+        
+        <div class="level-up" id="levelUp">¡NIVEL <span id="levelNum">2</span>!</div>
+        
+        <!-- Pantalla de Inicio -->
+        <div class="screen" id="startScreen">
+            <h1 class="title">CAZADOR DE ABEJAS</h1>
+            <p class="subtitle">Dispara a las abejas antes de que te piquen. ¡Cada 100 puntos aumenta el nivel y la dificultad!</p>
+            <button class="btn" id="startBtn">INICIAR JUEGO</button>
+            <p class="subtitle">Haz clic en cualquier lugar para disparar</p>
+        </div>
+        
+        <!-- Pantalla de Game Over -->
+        <div class="screen" id="gameOverScreen" style="display: none;">
+            <h1 class="title game-over">¡GAME OVER!</h1>
+            <p class="subtitle">Has sido picado demasiadas veces</p>
+            <div class="subtitle">Puntuación final: <span id="finalScore">0</span></div>
+            <div class="subtitle">Nivel alcanzado: <span id="finalLevel">1</span></div>
+            <button class="btn" id="restartBtn">JUGAR DE NUEVO</button>
+        </div>
+    </div>
+
+    <script>
+        class BeeShooter {
+            constructor() {
+                this.initializeElements();
+                this.initializeGameState();
+                this.bindEvents();
+            }
+            
+            initializeElements() {
+                // Pantallas
+                this.startScreen = document.getElementById('startScreen');
+                this.gameOverScreen = document.getElementById('gameOverScreen');
+                
+                // Elementos de UI
+                this.scoreDisplay = document.getElementById('score');
+                this.levelDisplay = document.getElementById('level');
+                this.finalScoreDisplay = document.getElementById('finalScore');
+                this.finalLevelDisplay = document.getElementById('finalLevel');
+                this.levelUpDisplay = document.getElementById('levelUp');
+                this.levelNumDisplay = document.getElementById('levelNum');
+                
+                // Botones
+                this.startBtn = document.getElementById('startBtn');
+                this.restartBtn = document.getElementById('restartBtn');
+                
+                // Área de juego
+                this.gameArea = document.getElementById('gameArea');
+                this.player = document.querySelector('.player');
+                
+                // Puntos de vida
+                this.healthPoints = [
+                    document.getElementById('hp1'),
+                    document.getElementById('hp2'),
+                    document.getElementById('hp3')
+                ];
+            }
+            
+            initializeGameState() {
+                this.gameState = 'idle'; // 'idle', 'playing', 'gameOver'
+                this.score = 0;
+                this.level = 1;
+                this.health = 3;
+                this.bullets = [];
+                this.bees = [];
+                this.beeSpawnRate = 1000; // ms
+                this.lastBeeSpawn = 0;
+                this.beeSpeed = 1;
+                this.beeSize = 1;
+                this.damagePerSting = 1;
+                this.animationId = null;
+                this.gameAreaRect = this.gameArea.getBoundingClientRect();
+            }
+            
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.restartBtn.addEventListener('click', () => this.startGame());
+                
+                // Disparar al hacer clic en cualquier parte
+                document.addEventListener('click', (e) => {
+                    if (this.gameState === 'playing') {
+                        this.shoot(e.clientX, e.clientY);
+                    }
+                });
+                
+                // Recalcular el área de juego en redimensionamiento
+                window.addEventListener('resize', () => {
+                    this.gameAreaRect = this.gameArea.getBoundingClientRect();
+                });
+            }
+            
+            startGame() {
+                this.resetGame();
+                this.startScreen.style.display = 'none';
+                this.gameOverScreen.style.display = 'none';
+                this.gameState = 'playing';
+                this.gameLoop();
+            }
+            
+            resetGame() {
+                // Limpiar balas y abejas existentes
+                this.bullets.forEach(bullet => bullet.element.remove());
+                this.bees.forEach(bee => bee.element.remove());
+                
+                // Reiniciar estado del juego
+                this.bullets = [];
+                this.bees = [];
+                this.score = 0;
+                this.level = 1;
+                this.health = 3;
+                this.beeSpawnRate = 1000;
+                this.beeSpeed = 1;
+                this.beeSize = 1;
+                this.damagePerSting = 1;
+                
+                // Actualizar UI
+                this.updateScore();
+                this.updateLevel();
+                this.updateHealth();
+            }
+            
+            gameLoop() {
+                if (this.gameState !== 'playing') return;
+                
+                const now = Date.now();
+                
+                // Generar abejas
+                if (now - this.lastBeeSpawn > this.beeSpawnRate) {
+                    this.spawnBee();
+                    this.lastBeeSpawn = now;
+                }
+                
+                // Actualizar balas
+                this.updateBullets();
+                
+                // Actualizar abejas
+                this.updateBees();
+                
+                // Comprobar colisiones
+                this.checkCollisions();
+                
+                this.animationId = requestAnimationFrame(() => this.gameLoop());
+            }
+            
+            spawnBee() {
+                const bee = document.createElement('div');
+                bee.className = 'bee';
+                
+                const beeBody = document.createElement('div');
+                beeBody.className = 'bee-body';
+                
+                const leftWing = document.createElement('div');
+                leftWing.className = 'bee-wing left';
+                
+                const rightWing = document.createElement('div');
+                rightWing.className = 'bee-wing right';
+                
+                const stinger = document.createElement('div');
+                stinger.className = 'bee-stinger';
+                
+                bee.appendChild(leftWing);
+                bee.appendChild(rightWing);
+                bee.appendChild(beeBody);
+                bee.appendChild(stinger);
+                
+                // Tamaño según nivel
+                const size = 40 * this.beeSize;
+                bee.style.width = `${size}px`;
+                bee.style.height = `${size}px`;
+                
+                // Posición aleatoria en la parte superior
+                const maxX = this.gameAreaRect.width - size;
+                const x = Math.random() * maxX;
+                
+                bee.style.left = `${x}px`;
+                bee.style.top = `-${size}px`;
+                
+                this.gameArea.appendChild(bee);
+                
+                this.bees.push({
+                    element: bee,
+                    x: x,
+                    y: -size,
+                    speed: this.beeSpeed + Math.random() * 0.5,
+                    size: size,
+                    hit: false
+                });
+            }
+            
+            shoot(clientX, clientY) {
+                const bullet = document.createElement('div');
+                bullet.className = 'bullet';
+                
+                // Posición inicial en el cañón del jugador
+                const playerRect = this.player.getBoundingClientRect();
+                const startX = playerRect.left + playerRect.width / 2;
+                const startY = playerRect.top;
+                
+                // Convertir coordenadas del cliente a coordenadas del juego
+                const gameX = startX - this.gameAreaRect.left;
+                const gameY = startY - this.gameAreaRect.top;
+                
+                bullet.style.left = `${gameX}px`;
+                bullet.style.top = `${gameY}px`;
+                
+                this.gameArea.appendChild(bullet);
+                
+                // Calcular dirección del disparo
+                const targetX = clientX - this.gameAreaRect.left;
+                const targetY = clientY - this.gameAreaRect.top;
+                
+                const angle = Math.atan2(targetY - gameY, targetX - gameX);
+                
+                this.bullets.push({
+                    element: bullet,
+                    x: gameX,
+                    y: gameY,
+                    speed: 10,
+                    angle: angle,
+                    active: true
+                });
+                
+                // Efecto visual de disparo
+                this.createHitEffect(gameX, gameY);
+            }
+            
+            updateBullets() {
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const bullet = this.bullets[i];
+                    
+                    if (!bullet.active) {
+                        bullet.element.remove();
+                        this.bullets.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Mover bala
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+                    
+                    bullet.element.style.left = `${bullet.x}px`;
+                    bullet.element.style.top = `${bullet.y}px`;
+                    
+                    // Eliminar balas que salen de la pantalla
+                    if (bullet.y < -20 || bullet.y > this.gameAreaRect.height || 
+                        bullet.x < -20 || bullet.x > this.gameAreaRect.width) {
+                        bullet.active = false;
+                    }
+                }
+            }
+            
+            updateBees() {
+                for (let i = this.bees.length - 1; i >= 0; i--) {
+                    const bee = this.bees[i];
+                    
+                    if (bee.hit) {
+                        bee.element.remove();
+                        this.bees.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Mover abeja hacia abajo
+                    bee.y += bee.speed;
+                    bee.element.style.top = `${bee.y}px`;
+                    
+                    // Movimiento lateral aleatorio suave
+                    bee.x += (Math.random() - 0.5) * 2;
+                    bee.x = Math.max(0, Math.min(bee.x, this.gameAreaRect.width - bee.size));
+                    bee.element.style.left = `${bee.x}px`;
+                    
+                    // Animación de aleteo
+                    const wings = bee.element.querySelectorAll('.bee-wing');
+                    const scale = 0.9 + Math.sin(Date.now() / 100) * 0.1;
+                    wings.forEach(wing => {
+                        wing.style.transform = wing.classList.contains('left') 
+                            ? `rotate(-20deg) scale(${scale})` 
+                            : `rotate(20deg) scale(${scale})`;
+                    });
+                    
+                    // Comprobar si la abeja llegó al fondo (picó al jugador)
+                    if (bee.y > this.gameAreaRect.height - 100) {
+                        this.playerStung();
+                        bee.hit = true;
+                    }
+                }
+            }
+            
+            checkCollisions() {
+                // Comprobar colisiones bala-abeja
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const bullet = this.bullets[i];
+                    
+                    for (let j = this.bees.length - 1; j >= 0; j--) {
+                        const bee = this.bees[j];
+                        
+                        if (this.checkCollision(bullet, bee)) {
+                            // Colisión detectada
+                            this.beeHit(bee, j);
+                            bullet.active = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            checkCollision(bullet, bee) {
+                const bulletRect = bullet.element.getBoundingClientRect();
+                const beeRect = bee.element.getBoundingClientRect();
+                
+                return !(bulletRect.right < beeRect.left || 
+                        bulletRect.left > beeRect.right || 
+                        bulletRect.bottom < beeRect.top || 
+                        bulletRect.top > beeRect.bottom);
+            }
+            
+            beeHit(bee, index) {
+                // Aumentar puntuación
+                this.score += 10;
+                this.updateScore();
+                
+                // Efecto visual
+                this.createHitEffect(bee.x + bee.size/2, bee.y + bee.size/2);
+                
+                // Marcar abeja como golpeada
+                bee.hit = true;
+                
+                // Comprobar si sube de nivel
+                if (this.score >= this.level * 100) {
+                    this.levelUp();
+                }
+            }
+            
+            playerStung() {
+                // Reducir salud
+                this.health -= this.damagePerSting;
+                this.updateHealth();
+                
+                // Efecto visual de daño
+                this.player.style.filter = 'brightness(2)';
+                setTimeout(() => {
+                    this.player.style.filter = 'brightness(1)';
+                }, 200);
+                
+                // Comprobar si el juego termina
+                if (this.health <= 0) {
+                    this.gameOver();
+                }
+            }
+            
+            levelUp() {
+                this.level++;
+                this.updateLevel();
+                
+                // Aumentar dificultad
+                this.beeSpawnRate = Math.max(200, this.beeSpawnRate * 0.8);
+                this.beeSpeed += 0.2;
+                
+                // Cada 3 niveles, aumentar tamaño y daño
+                if (this.level % 3 === 0) {
+                    this.beeSize += 0.1;
+                    this.damagePerSting++;
+                }
+                
+                // Mostrar animación de nivel
+                this.levelNumDisplay.textContent = this.level;
+                this.levelUpDisplay.style.animation = 'none';
+                setTimeout(() => {
+                    this.levelUpDisplay.style.animation = 'levelUp 2s forwards';
+                }, 10);
+            }
+            
+            gameOver() {
+                this.gameState = 'gameOver';
+                cancelAnimationFrame(this.animationId);
+                
+                this.finalScoreDisplay.textContent = this.score;
+                this.finalLevelDisplay.textContent = this.level;
+                this.gameOverScreen.style.display = 'flex';
+            }
+            
+            createHitEffect(x, y) {
+                const effect = document.createElement('div');
+                effect.className = 'hit-effect';
+                effect.style.left = `${x}px`;
+                effect.style.top = `${y}px`;
+                
+                this.gameArea.appendChild(effect);
+                
+                effect.style.animation = 'hitFlash 0.5s forwards';
+                
+                setTimeout(() => {
+                    effect.remove();
+                }, 500);
+            }
+            
+            updateScore() {
+                this.scoreDisplay.textContent = this.score;
+            }
+            
+            updateLevel() {
+                this.levelDisplay.textContent = this.level;
+            }
+            
+            updateHealth() {
+                this.healthPoints.forEach((hp, index) => {
+                    if (index < this.health) {
+                        hp.classList.add('active');
+                    } else {
+                        hp.classList.remove('active');
+                    }
+                });
+            }
+        }
+        
+        // Inicializar el juego cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            new BeeShooter();
+        });
+    </script>
+</body>
+</html>
